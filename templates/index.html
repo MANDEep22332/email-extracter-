@@ -1,103 +1,277 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>University Email Extractor</title>
-    <style>
-        * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-        body { background: #f4f6f9; display: flex; justify-content: center; padding: 40px 20px; margin: 0; }
-        .container { background: #ffffff; width: 100%; max-width: 650px; padding: 30px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
-        h2 { margin-top: 0; color: #1a202c; }
-        p { color: #718096; margin-bottom: 24px; }
-        .input-group { display: flex; gap: 10px; margin-bottom: 20px; }
-        input[type="text"] { flex: 1; padding: 12px 16px; border: 1px solid #cbd5e0; border-radius: 8px; font-size: 15px; outline: none; }
-        input[type="text"]:focus { border-color: #3182ce; }
-        button { background: #3182ce; color: #fff; border: none; padding: 12px 20px; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer; }
-        button:hover { background: #2b6cb0; }
-        button:disabled { background: #a0aec0; cursor: not-allowed; }
-        .status { margin-top: 15px; font-size: 14px; font-weight: 500; }
-        .error { color: #e53e3e; }
-        .results-box { margin-top: 20px; border-top: 1px solid #e2e8f0; padding-top: 20px; display: none; }
-        ul { list-style: none; padding: 0; margin: 10px 0 0 0; max-height: 250px; overflow-y: auto; border: 1px solid #edf2f7; border-radius: 8px; }
-        li { padding: 10px 14px; border-bottom: 1px solid #edf2f7; font-family: monospace; color: #2d3748; }
-        li:last-child { border-bottom: none; }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>University Email Extractor</title>
+<style>
+  :root {
+    --blue: #1d2fd1;
+    --blue-deep: #121e8f;
+    --paper: #fbfbf8;
+    --ink: #101533;
+    --muted: #5d6385;
+    --mark: #ffe14d;
+    --white: #ffffff;
+    --danger: #ffb4b4;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    min-height: 100vh;
+    background: var(--blue);
+    background-image: radial-gradient(1200px 600px at 85% -10%, #3a4cff 0%, transparent 60%);
+    color: var(--white);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    line-height: 1.5;
+    padding: clamp(28px, 7vh, 80px) clamp(18px, 5vw, 64px) 64px;
+  }
+  .wrap { max-width: 1100px; margin: 0 auto; }
+
+  .hero { display: grid; grid-template-columns: 1.05fr .95fr; gap: clamp(32px, 6vw, 80px); align-items: center; }
+
+  h1 {
+    font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+    font-weight: 700;
+    font-size: clamp(2.4rem, 5.6vw, 4.4rem);
+    line-height: 1.02;
+    letter-spacing: -0.025em;
+    margin: 0 0 20px;
+    text-wrap: balance;
+  }
+  .lead { font-size: 1.1rem; color: #d5d9ff; max-width: 44ch; margin: 0 0 32px; }
+
+  /* Input */
+  .search {
+    display: flex; gap: 8px;
+    background: var(--white);
+    border-radius: 16px;
+    padding: 8px;
+    box-shadow: 0 18px 40px -12px rgba(5, 10, 80, .55);
+  }
+  .search:focus-within { outline: 3px solid var(--mark); outline-offset: 3px; }
+  .search input {
+    flex: 1; min-width: 0; border: 0; outline: 0; background: transparent;
+    font-size: 1rem; color: var(--ink); padding: 14px 14px;
+  }
+  .search input::placeholder { color: #8d92b3; }
+  button { font: inherit; cursor: pointer; border: 0; }
+  button:focus-visible { outline: 3px solid var(--mark); outline-offset: 2px; }
+  .go {
+    background: var(--ink); color: var(--white); font-weight: 700;
+    padding: 0 24px; border-radius: 10px; white-space: nowrap;
+    transition: transform .12s, background .12s;
+  }
+  .go:hover { background: #1f2860; }
+  .go:active { transform: scale(.97); }
+  .go:disabled { opacity: .6; cursor: wait; }
+  .hint { color: #b9bffa; font-size: .9rem; margin: 14px 4px 0; }
+  .status { min-height: 1.6em; margin: 14px 4px 0; font-weight: 600; }
+  .status.error { color: var(--danger); }
+
+  /* Directory sheet */
+  .sheet {
+    position: relative; overflow: hidden;
+    background: var(--paper); color: var(--ink);
+    border-radius: 6px; padding: 26px 26px 22px;
+    transform: rotate(1.6deg);
+    box-shadow: 0 30px 60px -20px rgba(4, 8, 70, .7);
+  }
+  .sheet h2 {
+    font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+    font-size: 1.25rem; margin: 0 0 4px;
+  }
+  .sheet .sub { color: var(--muted); font-size: .85rem; margin: 0 0 14px; padding-bottom: 12px; border-bottom: 2px solid var(--ink); }
+  .row { padding: 9px 0; border-bottom: 1px solid #e4e4dc; font-size: .93rem; }
+  .row b { display: block; }
+  .row span { color: var(--muted); font-size: .85rem; }
+  mark {
+    color: var(--ink);
+    background: linear-gradient(var(--mark), var(--mark)) no-repeat 0 90% / 0% 78%;
+    animation: hl .7s cubic-bezier(.3,.7,.2,1) forwards;
+    animation-delay: calc(var(--i) * .55s + .5s);
+    padding: 0 2px; margin: 0 -2px;
+  }
+  @keyframes hl { to { background-size: 100% 78%; } }
+
+  .scanbar {
+    position: absolute; left: 0; right: 0; top: 0; height: 56px; display: none;
+    background: linear-gradient(to bottom, transparent, rgba(29,47,209,.22), transparent);
+    border-bottom: 2px solid var(--blue);
+  }
+  body.scanning .scanbar { display: block; animation: scan 1.4s ease-in-out infinite alternate; }
+  @keyframes scan { from { transform: translateY(-20px); } to { transform: translateY(calc(100% * 6)); } }
+
+  /* Results */
+  .results {
+    display: none; margin-top: clamp(40px, 7vh, 72px);
+    background: var(--paper); color: var(--ink); border-radius: 18px; overflow: hidden;
+    box-shadow: 0 30px 60px -24px rgba(4, 8, 70, .7);
+  }
+  .results-head {
+    display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between;
+    padding: 20px 24px; border-bottom: 2px solid var(--ink);
+  }
+  .results-head strong { font-family: "Iowan Old Style", Palatino, Georgia, serif; font-size: 1.5rem; }
+  .actions { display: flex; gap: 8px; }
+  .btn {
+    background: var(--ink); color: var(--white); font-weight: 600; font-size: .9rem;
+    padding: 10px 16px; border-radius: 9px;
+  }
+  .btn.alt { background: transparent; color: var(--ink); box-shadow: inset 0 0 0 1.5px var(--ink); }
+  .btn:hover { opacity: .85; }
+  ul { list-style: none; margin: 0; padding: 0; max-height: 420px; overflow-y: auto; columns: 2 320px; column-gap: 0; }
+  li {
+    display: flex; justify-content: space-between; align-items: center; gap: 10px;
+    padding: 12px 24px; border-bottom: 1px solid #e4e4dc; break-inside: avoid;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: .9rem; word-break: break-all;
+  }
+  li span { background: linear-gradient(var(--mark), var(--mark)) no-repeat 0 90% / 100% 70%; padding: 0 2px; }
+  li.empty { font-family: inherit; color: var(--muted); column-span: all; padding: 28px 24px; }
+  li .btn { padding: 4px 10px; font-size: .78rem; flex-shrink: 0; }
+
+  @media (max-width: 860px) {
+    .hero { grid-template-columns: 1fr; }
+    .sheet { transform: rotate(0.8deg); }
+  }
+  @media (max-width: 480px) {
+    .search { flex-direction: column; }
+    .go { padding: 14px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    mark { animation: none; background-size: 100% 78%; }
+    body.scanning .scanbar { animation: none; }
+  }
+</style>
 </head>
 <body>
-    <div class="container">
-        <h2>University Email Extractor</h2>
-        <p>Paste a university department link below to scan for public email addresses.</p>
+<div class="wrap">
+  <section class="hero">
+    <div>
+      <h1>Every public email on a university page, in seconds.</h1>
+      <p class="lead">Paste the address of a department, faculty or staff directory. We read the page and hand back each unique email address, ready to copy or download.</p>
 
-        <div class="input-group">
-            <input type="text" id="urlInput" placeholder="e.g., https://cs.university.edu/faculty">
-            <button id="scrapeBtn" onclick="runScraper()">Extract Emails</button>
-        </div>
-
-        <div id="statusMessage" class="status"></div>
-
-        <div id="resultsBox" class="results-box">
-            <strong id="resultCount"></strong>
-            <ul id="emailList"></ul>
-        </div>
+      <div class="search">
+        <input type="text" id="urlInput" placeholder="https://cs.university.edu/faculty" aria-label="Page address" autocomplete="off" inputmode="url" autofocus>
+        <button id="scrapeBtn" class="go">Extract emails</button>
+      </div>
+      <p class="hint">Only addresses already shown publicly on the page are collected.</p>
+      <div id="statusMessage" class="status" role="status" aria-live="polite"></div>
     </div>
 
-    <script>
-        async function runScraper() {
-            const urlInput = document.getElementById("urlInput");
-            const scrapeBtn = document.getElementById("scrapeBtn");
-            const statusMessage = document.getElementById("statusMessage");
-            const resultsBox = document.getElementById("resultsBox");
-            const emailList = document.getElementById("emailList");
-            const resultCount = document.getElementById("resultCount");
+    <div class="sheet" aria-hidden="true">
+      <div class="scanbar"></div>
+      <h2>Department of Computer Science</h2>
+      <p class="sub">Faculty directory</p>
+      <div class="row"><b>Prof. Amara Okafor</b><span>Machine Learning</span><br><mark style="--i:0">a.okafor@cs.example.edu</mark></div>
+      <div class="row"><b>Dr. Liam Tanaka</b><span>Distributed Systems</span><br><mark style="--i:1">l.tanaka@cs.example.edu</mark></div>
+      <div class="row"><b>Dr. Priya Raman</b><span>Human-Computer Interaction</span><br><mark style="--i:2">p.raman@cs.example.edu</mark></div>
+      <div class="row"><b>Prof. Jonas Weber</b><span>Security and Privacy</span><br><mark style="--i:3">j.weber@cs.example.edu</mark></div>
+    </div>
+  </section>
 
-            const targetUrl = urlInput.value.trim();
-            if (!targetUrl) {
-                statusMessage.className = "status error";
-                statusMessage.innerText = "Please enter a valid URL.";
-                return;
-            }
+  <section id="resultsBox" class="results" aria-label="Results">
+    <div class="results-head">
+      <strong id="resultCount"></strong>
+      <div class="actions" id="actions">
+        <button class="btn alt" id="copyAllBtn">Copy all</button>
+        <button class="btn" id="downloadBtn">Download CSV</button>
+      </div>
+    </div>
+    <ul id="emailList"></ul>
+  </section>
+</div>
 
-            // Reset UI State
-            statusMessage.className = "status";
-            statusMessage.innerText = "Scanning website for emails...";
-            resultsBox.style.display = "none";
-            emailList.innerHTML = "";
-            scrapeBtn.disabled = true;
+<script>
+  const $ = id => document.getElementById(id);
+  const urlInput = $("urlInput"), scrapeBtn = $("scrapeBtn"), statusMessage = $("statusMessage"),
+        resultsBox = $("resultsBox"), emailList = $("emailList"), resultCount = $("resultCount"),
+        actions = $("actions"), copyAllBtn = $("copyAllBtn"), downloadBtn = $("downloadBtn");
+  let currentEmails = [];
 
-            try {
-                const response = await fetch("/api/scrape", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ url: targetUrl })
-                });
+  function setStatus(text, isError) {
+    statusMessage.className = "status" + (isError ? " error" : "");
+    statusMessage.textContent = text;
+  }
+  function normalizeUrl(value) {
+    let v = value.trim();
+    if (!v) return null;
+    if (!/^https?:\/\//i.test(v)) v = "https://" + v;
+    try { const u = new URL(v); return u.hostname.includes(".") ? u.href : null; } catch { return null; }
+  }
+  async function copyText(text, btn, original) {
+    try { await navigator.clipboard.writeText(text); btn.textContent = "Copied"; }
+    catch { btn.textContent = "Copy failed"; }
+    setTimeout(() => { btn.textContent = original; }, 1400);
+  }
 
-                const data = await response.json();
+  async function runScraper() {
+    const targetUrl = normalizeUrl(urlInput.value);
+    if (!targetUrl) {
+      setStatus("Enter a full page address, like https://cs.university.edu/faculty.", true);
+      urlInput.focus();
+      return;
+    }
+    setStatus("Scanning the page for email addresses…", false);
+    document.body.classList.add("scanning");
+    resultsBox.style.display = "none";
+    emailList.innerHTML = "";
+    currentEmails = [];
+    scrapeBtn.disabled = true;
 
-                if (!response.ok) {
-                    throw new Error(data.error || "An unknown error occurred.");
-                }
+    try {
+      const response = await fetch("/api/scrape", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: targetUrl })
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Something went wrong. Try again.");
 
-                statusMessage.innerText = "";
-                resultsBox.style.display = "block";
-                resultCount.innerText = `Found ${data.count} unique email address(es):`;
+      setStatus("", false);
+      currentEmails = data.emails || [];
+      resultsBox.style.display = "block";
 
-                if (data.emails.length === 0) {
-                    emailList.innerHTML = "<li>No emails found on this page.</li>";
-                } else {
-                    data.emails.forEach(email => {
-                        const li = document.createElement("li");
-                        li.innerText = email;
-                        emailList.appendChild(li);
-                    });
-                }
-            } catch (err) {
-                statusMessage.className = "status error";
-                statusMessage.innerText = err.message;
-            } finally {
-                scrapeBtn.disabled = false;
-            }
-        }
-    </script>
+      if (currentEmails.length === 0) {
+        resultCount.textContent = "No emails found";
+        actions.style.display = "none";
+        emailList.innerHTML = "<li class='empty'>This page doesn't list any public email addresses. Try a staff or faculty directory page.</li>";
+      } else {
+        const n = data.count ?? currentEmails.length;
+        resultCount.textContent = n + " unique email address" + (n === 1 ? "" : "es");
+        actions.style.display = "flex";
+        currentEmails.forEach(email => {
+          const li = document.createElement("li");
+          const span = document.createElement("span");
+          span.textContent = email;
+          const btn = document.createElement("button");
+          btn.className = "btn alt";
+          btn.textContent = "Copy";
+          btn.addEventListener("click", () => copyText(email, btn, "Copy"));
+          li.append(span, btn);
+          emailList.appendChild(li);
+        });
+      }
+      resultsBox.scrollIntoView({ behavior: "smooth", block: "start" });
+    } catch (err) {
+      setStatus(err.message, true);
+    } finally {
+      document.body.classList.remove("scanning");
+      scrapeBtn.disabled = false;
+    }
+  }
+
+  scrapeBtn.addEventListener("click", runScraper);
+  urlInput.addEventListener("keydown", e => { if (e.key === "Enter") runScraper(); });
+  copyAllBtn.addEventListener("click", () => copyText(currentEmails.join("\n"), copyAllBtn, "Copy all"));
+  downloadBtn.addEventListener("click", () => {
+    const blob = new Blob(["email\n" + currentEmails.join("\n")], { type: "text/csv" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "emails.csv";
+    a.click();
+    URL.revokeObjectURL(a.href);
+  });
+</script>
 </body>
 </html>
